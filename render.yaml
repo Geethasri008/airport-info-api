@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: airport-info-api
+    env: node
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
