@@ -1,7 +1,8 @@
 require("reflect-metadata");
 const express = require("express");
 const morgan = require("morgan"); 
-const { AppDataSource } = require("./data-source");
+const { AppDataSource } = require("./src/data-source");
+
 
 const airportRoutes = require("./routes/airport");
 const app = express();
