@@ -1,9 +1,7 @@
-// src/importSpreadsheet.js
 const path = require("path");
 const xlsx = require("xlsx");
 const { AppDataSource } = require("./data-source");
 const Airport = require("./entities/Airport");
-const City = require("./entities/City"); // Make sure this exists
 
 async function importData() {
     const filePath = path.join(__dirname, "Database.xlsx");
@@ -13,7 +11,6 @@ async function importData() {
     const rows = xlsx.utils.sheet_to_json(sheet);
 
     const airportRepo = AppDataSource.getRepository(Airport);
-    const cityRepo = AppDataSource.getRepository(City);
 
     for (const row of rows) {
         if (!row.icao_code) {
@@ -21,11 +18,17 @@ async function importData() {
             continue;
         }
 
-        if (row.city_id) {
-            const cityExists = await cityRepo.findOne({ where: { id: row.city_id } });
-            if (!cityExists) {
-                console.warn(`Skipping airport: city_id ${row.city_id} not found`);
-                continue;
+        let cityId = row.city_id || null;
+
+        // Try checking if the city exists, if not set null
+        if (cityId) {
+            const cityExists = await AppDataSource.query(
+                "SELECT id FROM city WHERE id = ?",
+                [cityId]
+            );
+            if (cityExists.length === 0) {
+                console.warn(`City ID ${cityId} not found. Setting to null.`);
+                cityId = null;
             }
         }
 
@@ -37,17 +40,13 @@ async function importData() {
             latitude_deg: row.latitude_deg || null,
             longitude_deg: row.longitude_deg || null,
             elevation_ft: row.elevation_ft || null,
-            city_id: row.city_id || null
+            city_id: cityId
         });
 
-        try {
-            await airportRepo.save(airport);
-        } catch (err) {
-            console.error(`❌ Failed to save airport ${row.icao_code}:`, err.message);
-        }
+        await airportRepo.save(airport);
     }
 
-    console.log("✅ Data import finished");
+    console.log("✅ Data imported successfully");
 }
 
 module.exports = importData;
