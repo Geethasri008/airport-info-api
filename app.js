@@ -8,6 +8,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Root route
+app.get("/", (req, res) => {
+  res.send("Welcome to the Airport Info API. Use /api/airport/:iata_code to get airport details.");
+});
+
 // Register airport routes under /api/airport
 app.use("/api/airport", airportRouter);
 
