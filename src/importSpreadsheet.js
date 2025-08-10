@@ -3,6 +3,7 @@ const path = require("path");
 const xlsx = require("xlsx");
 const { AppDataSource } = require("./data-source");
 const Airport = require("./entities/Airport");
+const City = require("./entities/City"); // Make sure this exists
 
 async function importData() {
     const filePath = path.join(__dirname, "Database.xlsx");
@@ -12,11 +13,20 @@ async function importData() {
     const rows = xlsx.utils.sheet_to_json(sheet);
 
     const airportRepo = AppDataSource.getRepository(Airport);
+    const cityRepo = AppDataSource.getRepository(City);
 
     for (const row of rows) {
         if (!row.icao_code) {
             console.warn(`Skipping row: ICAO code missing`);
             continue;
+        }
+
+        if (row.city_id) {
+            const cityExists = await cityRepo.findOne({ where: { id: row.city_id } });
+            if (!cityExists) {
+                console.warn(`Skipping airport: city_id ${row.city_id} not found`);
+                continue;
+            }
         }
 
         const airport = airportRepo.create({
@@ -30,10 +40,14 @@ async function importData() {
             city_id: row.city_id || null
         });
 
-        await airportRepo.save(airport);
+        try {
+            await airportRepo.save(airport);
+        } catch (err) {
+            console.error(`❌ Failed to save airport ${row.icao_code}:`, err.message);
+        }
     }
 
-    console.log("✅ Data imported successfully");
+    console.log("✅ Data import finished");
 }
 
 module.exports = importData;
